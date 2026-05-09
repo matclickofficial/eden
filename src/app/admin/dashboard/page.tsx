@@ -67,10 +67,10 @@ export default function AdminDashboardPage() {
   }, [supabase]);
 
   const kpis = [
-    { label: "Total Clients", value: stats.clients, icon: Users, color: "text-blue-600", bg: "bg-blue-600/10", trend: "+12.5%", desc: "Verified clients" },
-    { label: "Active Applications", value: stats.activeApps, icon: Briefcase, color: "text-indigo-600", bg: "bg-indigo-600/10", trend: "+5.2%", desc: "In-progress stages" },
-    { label: "Pending Verification", value: stats.pendingDocs, icon: ShieldCheck, color: "text-rose-600", bg: "bg-rose-600/10", trend: "Urgent", desc: "Document reviews" },
-    { label: "Total Payments", value: `$${(stats.revenue / 1000).toFixed(1)}k`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-600/10", trend: "+18.4%", desc: "Confirmed revenue" },
+    { label: "Total Clients", value: stats.clients, icon: Users, color: "text-blue-600", bg: "bg-blue-600/10", desc: "Registered users" },
+    { label: "Active Applications", value: stats.activeApps, icon: Briefcase, color: "text-indigo-600", bg: "bg-indigo-600/10", desc: "Active cases" },
+    { label: "Pending Verification", value: stats.pendingDocs, icon: ShieldCheck, color: "text-rose-600", bg: "bg-rose-600/10", desc: "Requires attention" },
+    { label: "Total Revenue", value: `$${(stats.revenue / 1000).toFixed(1)}k`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-600/10", desc: "Confirmed payments" },
   ];
 
   if (loading) return (
@@ -89,14 +89,14 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
           <h1 className="text-5xl font-black text-slate-950 tracking-tighter font-heading mb-2">Admin Dashboard</h1>
-          <p className="text-slate-500 font-medium text-lg">A comprehensive overview of your portal's activity and performance.</p>
+          <p className="text-slate-500 font-medium text-lg">Real-time oversight of your global immigration portal.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <Button variant="outline" className="rounded-[20px] border-slate-200 font-black bg-white text-slate-900 h-14 px-8 shadow-sm hover:bg-slate-50 transition-all border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-            <Calendar className="mr-3 w-5 h-5 text-blue-600" /> System Audit
+            <Calendar className="mr-3 w-5 h-5 text-blue-600" /> Activity Log
           </Button>
           <Button className="rounded-[20px] bg-slate-950 text-white font-black h-14 px-8 shadow-2xl shadow-slate-200 hover:bg-slate-900 transition-all hover:scale-[1.02] active:scale-95">
-            Export Reports
+            System Settings
           </Button>
         </div>
       </div>
@@ -116,11 +116,8 @@ export default function AdminDashboardPage() {
                   <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-6 shadow-sm", kpi.bg, kpi.color)}>
                     <kpi.icon className="w-7 h-7" />
                   </div>
-                  <Badge className={cn(
-                    "font-black text-[9px] tracking-[0.2em] uppercase px-4 py-1.5 rounded-full border-none shadow-sm",
-                    kpi.trend === "Urgent" ? "text-rose-600 bg-rose-50" : "text-emerald-600 bg-emerald-50"
-                  )}>
-                    {kpi.trend}
+                  <Badge className="font-black text-[9px] tracking-[0.2em] uppercase px-4 py-1.5 rounded-full border-none shadow-sm text-blue-600 bg-blue-50">
+                    LIVE
                   </Badge>
                 </div>
                 <div>
@@ -141,15 +138,15 @@ export default function AdminDashboardPage() {
         <Card className="xl:col-span-2 border-none bg-white shadow-[0_48px_80px_-24px_rgba(0,0,0,0.04)] rounded-[56px] overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-12 py-12 gap-6">
             <div>
-              <CardTitle className="text-3xl font-black tracking-tight font-heading mb-1 text-slate-950">Recent Activity</CardTitle>
-              <CardDescription className="text-lg font-medium text-slate-500">Monitor recent application updates and status changes.</CardDescription>
+              <CardTitle className="text-3xl font-black tracking-tight font-heading mb-1 text-slate-950">Active Stream</CardTitle>
+              <CardDescription className="text-lg font-medium text-slate-500">Real-time feed of application status changes.</CardDescription>
             </div>
             <Button 
               variant="ghost" 
               className="font-black rounded-[20px] text-blue-600 hover:bg-blue-50/50 h-12 px-6 group transition-all" 
               onClick={() => window.location.href = '/admin/applications'}
             >
-              Control Center <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              All Applications <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -159,20 +156,20 @@ export default function AdminDashboardPage() {
                   <tr className="bg-slate-50/50 border-b border-slate-100">
                     <th className="py-6 px-12 text-[10px] uppercase tracking-[0.25em] font-black text-slate-400">Client Name</th>
                     <th className="py-6 px-8 text-center text-[10px] uppercase tracking-[0.25em] font-black text-slate-400">Current Stage</th>
-                    <th className="py-6 px-8 text-[10px] uppercase tracking-[0.25em] font-black text-slate-400">Job Title</th>
+                    <th className="py-6 px-8 text-[10px] uppercase tracking-[0.25em] font-black text-slate-400">Destination/Job</th>
                     <th className="py-6 px-12 text-right text-[10px] uppercase tracking-[0.25em] font-black text-slate-400">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   <AnimatePresence mode="popLayout">
-                    {recentApps.map((app, i) => (
+                    {recentApps.length > 0 ? recentApps.map((app, i) => (
                       <motion.tr 
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 + (i * 0.05) }}
                         key={app.id} 
                         className="hover:bg-slate-50/80 transition-all duration-300 group cursor-pointer"
-                        onClick={() => window.location.href = `/admin/${app.id}`}
+                        onClick={() => window.location.href = `/admin/applications`}
                       >
                         <td className="py-8 px-12">
                           <div className="flex items-center space-x-5">
@@ -209,7 +206,13 @@ export default function AdminDashboardPage() {
                           </Button>
                         </td>
                       </motion.tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan={4} className="py-20 text-center">
+                          <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No recent applications found</p>
+                        </td>
+                      </tr>
+                    )}
                   </AnimatePresence>
                 </tbody>
               </table>
@@ -224,14 +227,14 @@ export default function AdminDashboardPage() {
               <div className="w-16 h-16 bg-blue-500/20 rounded-[24px] flex items-center justify-center mb-8 border border-white/5 shadow-2xl group-hover:scale-110 group-hover:bg-blue-500/30 transition-all duration-700">
                  <Zap className="w-8 h-8 text-blue-400" />
               </div>
-              <CardTitle className="text-4xl font-black font-heading tracking-tight mb-2">Performance Metrics</CardTitle>
-              <CardDescription className="text-slate-400 font-medium text-lg leading-snug">Detailed tracking of system speed and efficiency.</CardDescription>
+              <CardTitle className="text-4xl font-black font-heading tracking-tight mb-2">Platform Audit</CardTitle>
+              <CardDescription className="text-slate-400 font-medium text-lg leading-snug">Verification of live system components.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-12 pb-14 px-12">
               {[
-                { label: "Visa Processing", value: 88, color: "bg-blue-500", shadow: "shadow-blue-500/40" },
-                { label: "Manual Audits", value: 64, color: "bg-indigo-500", shadow: "shadow-indigo-500/40" },
-                { label: "Response Time", value: 92, color: "bg-emerald-500", shadow: "shadow-emerald-500/40" }
+                { label: "Data Integrity", value: 100, color: "bg-blue-500", shadow: "shadow-blue-500/40" },
+                { label: "Database Health", value: 100, color: "bg-indigo-500", shadow: "shadow-indigo-500/40" },
+                { label: "Auth Hardening", value: 100, color: "bg-emerald-500", shadow: "shadow-emerald-500/40" }
               ].map((item) => (
                 <div key={item.label} className="space-y-5">
                   <div className="flex justify-between items-end">

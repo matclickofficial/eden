@@ -28,22 +28,43 @@ export default function AdminReportsPage() {
   }, []);
 
   async function fetchAnalytics() {
-    // Mocking some data for the report visuals
-    setStats({
-      monthlyRevenue: [
-        { month: 'Jan', val: 1200000 },
-        { month: 'Feb', val: 1800000 },
-        { month: 'Mar', val: 1500000 },
-        { month: 'Apr', val: 2200000 },
-      ],
-      appStages: [
-        { label: 'Submitted', count: 45, color: 'bg-blue-500' },
-        { label: 'Processing', count: 28, color: 'bg-amber-500' },
-        { label: 'Visa Filed', count: 15, color: 'bg-primary' },
-        { label: 'Completed', count: 12, color: 'bg-secondary' },
-      ]
-    });
-    setLoading(false);
+    try {
+      // 1. Get Applications by Stage
+      const { data: appData } = await supabase.from("applications").select("current_stage");
+      const stages = [
+        { label: 'Submitted', count: 0, color: 'bg-blue-500', key: 'submitted' },
+        { label: 'Processing', count: 0, color: 'bg-amber-500', key: 'processing' },
+        { label: 'Visa Filed', count: 0, color: 'bg-blue-600', key: 'visa_filed' },
+        { label: 'Completed', count: 0, color: 'bg-emerald-600', key: 'completed' },
+      ];
+      
+      appData?.forEach(app => {
+        const stage = stages.find(s => s.key === app.current_stage || s.label.toLowerCase() === app.current_stage);
+        if (stage) stage.count++;
+      });
+
+      // 2. Get Total Revenue
+      const { data: payData } = await supabase.from("payments").select("amount").eq("status", "confirmed");
+      const totalRevenue = payData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
+
+      // 3. Get Signups & Jobs
+      const { count: userCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client");
+      const { count: jobCount } = await supabase.from("jobs").select("*", { count: "exact", head: true });
+
+      setStats({
+        monthlyRevenue: [
+          { month: 'Live Total', val: totalRevenue },
+        ],
+        appStages: stages,
+        totalUsers: userCount || 0,
+        totalJobs: jobCount || 0,
+        avgBasket: userCount ? (totalRevenue / userCount) : 0
+      });
+    } catch (error) {
+      console.error("Analytics error:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (loading) return <div>Loading reports...</div>;
@@ -131,45 +152,16 @@ export default function AdminReportsPage() {
         </Card>
       </div>
 
-      {/* Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <Card className="bg-primary text-white shadow-xl shadow-primary/20 border-none">
+        <Card className="bg-slate-900 text-white shadow-xl border-none">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white/10 rounded-xl">
+              <div className="p-3 bg-white/10 rounded-xl text-blue-400">
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">New Signups</p>
-                <h4 className="text-2xl font-black">124</h4>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-secondary text-white shadow-xl shadow-secondary/20 border-none">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white/10 rounded-xl">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Jobs Published</p>
-                <h4 className="text-2xl font-black">18</h4>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-emerald-600 text-white shadow-xl shadow-emerald-200 border-none">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white/10 rounded-xl">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Avg. Basket</p>
-                <h4 className="text-2xl font-black">PKR 750k</h4>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Total Clients</p>
+                <h4 className="text-2xl font-black">{stats.totalUsers}</h4>
               </div>
             </div>
           </CardContent>
@@ -178,12 +170,40 @@ export default function AdminReportsPage() {
         <Card className="bg-slate-900 text-white shadow-xl border-none">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white/10 rounded-xl">
-                <TrendingUp className="w-6 h-6" />
+              <div className="p-3 bg-white/10 rounded-xl text-amber-400">
+                <Briefcase className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">System Health</p>
-                <h4 className="text-2xl font-black">99.9%</h4>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Active Jobs</p>
+                <h4 className="text-2xl font-black">{stats.totalJobs}</h4>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-emerald-600 text-white shadow-xl border-none">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white/10 rounded-xl">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Avg. Revenue/User</p>
+                <h4 className="text-2xl font-black">${stats.avgBasket.toFixed(0)}</h4>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-blue-600 text-white shadow-xl border-none">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white/10 rounded-xl">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">System Status</p>
+                <h4 className="text-2xl font-black tracking-widest uppercase text-xs">Operational</h4>
               </div>
             </div>
           </CardContent>

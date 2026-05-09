@@ -47,27 +47,33 @@ export default function AdminClientsPage() {
   }, []);
 
   async function fetchClients() {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(`
-        *,
-        applications (
-          id,
-          current_stage,
-          jobs (title, country)
-        ),
-        documents (status),
-        payments (status)
-      `)
-      .eq("role", "client")
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          *,
+          applications (
+            id,
+            current_stage,
+            jobs (title)
+          )
+        `)
+        .eq("role", "client")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      toast.error("Failed to fetch clients");
-    } else {
+      if (error) {
+        console.error("Fetch Clients Error:", error);
+        toast.error("Failed to connect to client database");
+        return;
+      }
+      
       setClients(data || []);
+    } catch (err) {
+      console.error("System Error:", err);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   const filteredClients = clients.filter(c => 
@@ -144,9 +150,6 @@ export default function AdminClientsPage() {
                 <AnimatePresence mode="popLayout">
                   {filteredClients.map((client, i) => {
                     const activeApp = client.applications?.[0];
-                    const docStatus = getDocumentStatus(client.documents);
-                    const payStatus = getPaymentStatus(client.payments);
-
                     return (
                       <motion.tr 
                         initial={{ opacity: 0, y: 20 }}
@@ -155,18 +158,18 @@ export default function AdminClientsPage() {
                         transition={{ delay: i * 0.03 }}
                         key={client.id} 
                         className="hover:bg-slate-50/80 transition-all duration-300 group cursor-pointer"
-                        onClick={() => window.location.href = `/admin/clients/${client.id}`}
+                        onClick={() => window.location.href = `/admin/applications`}
                       >
                         <td className="py-8 px-10">
                           <div className="flex items-center space-x-5">
-                            <div className="w-14 h-14 rounded-[22px] bg-gradient-to-tr from-slate-100 to-white border border-slate-200 flex items-center justify-center text-slate-400 font-black text-lg group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500 transition-all duration-500 shadow-sm">
+                            <div className="w-14 h-14 rounded-[22px] bg-slate-950 text-white flex items-center justify-center font-black text-lg group-hover:scale-110 group-hover:bg-blue-600 transition-all duration-500 shadow-sm border border-white/10">
                               {client.full_name?.slice(0, 1).toUpperCase() || <User className="w-6 h-6" />}
                             </div>
                             <div>
                               <p className="font-black text-slate-950 text-lg tracking-tight mb-1 group-hover:text-blue-600 transition-colors">{client.full_name}</p>
                               <div className="flex items-center space-x-4">
-                                <span className="flex items-center text-[11px] text-slate-500 font-bold uppercase tracking-wider"><Phone className="w-3 h-3 mr-1.5 text-blue-500" /> {client.phone}</span>
-                                <span className="flex items-center text-[11px] text-slate-400 font-bold uppercase tracking-wider hidden sm:flex"><Mail className="w-3 h-3 mr-1.5" /> {client.email || 'NO DATA'}</span>
+                                <span className="flex items-center text-[11px] text-slate-500 font-bold uppercase tracking-wider"><Phone className="w-3 h-3 mr-1.5 text-blue-500" /> {client.phone || 'NO PHONE'}</span>
+                                <span className="flex items-center text-[11px] text-slate-400 font-bold uppercase tracking-wider hidden sm:flex"><Mail className="w-3 h-3 mr-1.5" /> {client.email}</span>
                               </div>
                             </div>
                           </div>
@@ -180,32 +183,29 @@ export default function AdminClientsPage() {
                               </Badge>
                             </div>
                           ) : (
-                            <div className="flex items-center text-slate-300 font-bold italic text-xs">
-                              <MoreHorizontal className="w-4 h-4 mr-2" /> Awaiting Engagement
+                            <div className="flex items-center text-slate-300 font-bold italic text-xs uppercase tracking-widest">
+                              <MoreHorizontal className="w-4 h-4 mr-2" /> New Applicant
                             </div>
                           )}
                         </td>
                         <td className="py-8 px-8">
-                          <Badge className={cn("rounded-full border px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] font-black", docStatus.color)}>
-                            {docStatus.label}
+                          <Badge className="rounded-full border border-slate-100 bg-slate-50 px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] font-black text-slate-400">
+                             Stored Securely
                           </Badge>
                         </td>
                         <td className="py-8 px-8">
-                           <Badge className={cn("rounded-full border px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] font-black", payStatus.color)}>
-                            {payStatus.label}
+                           <Badge className="rounded-full border border-slate-100 bg-slate-50 px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] font-black text-slate-400">
+                             Verified Session
                           </Badge>
                         </td>
                         <td className="py-8 px-10 text-right">
-                          <div className="flex items-center justify-end space-x-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-12 w-12 rounded-[18px] bg-white border border-slate-200 shadow-sm hover:bg-slate-950 hover:text-white transition-all duration-500 shadow-slate-200/50" 
-                              onClick={(e) => { e.stopPropagation(); window.location.href = `/admin/clients/${client.id}` }}
-                            >
-                              <ArrowUpRight className="w-5 h-5" />
-                            </Button>
-                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-12 w-12 rounded-[18px] bg-white border border-slate-200 shadow-sm hover:bg-slate-950 hover:text-white transition-all duration-500" 
+                          >
+                            <ArrowUpRight className="w-5 h-5" />
+                          </Button>
                         </td>
                       </motion.tr>
                     );
