@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
   FileText, CreditCard, Clock, CheckCircle2, ArrowRight, Bell,
-  TrendingUp, AlertCircle, ChevronRight, Globe, Briefcase, Users, Fingerprint, Scan, Video, Heart
+  TrendingUp, AlertCircle, ChevronRight, Globe, Briefcase, Users, Fingerprint, Scan, Video, Heart, Layers, Bot
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
