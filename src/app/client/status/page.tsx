@@ -1,50 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, AlertCircle, Search, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Search, Loader2, ChevronDown, ChevronUp, Globe, Briefcase } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const CATEGORIES = [
-  "Offer Letter",
-  "LMIA Approval",
   "Work Permit",
   "Study Visa",
   "Visitor Visa",
   "Permanent Residency",
   "Biometrics",
   "Fees",
-];
-
-const MOCK_APPLICATIONS = [
-  {
-    id: "EDEN-482910",
-    service: "Work Permit",
-    submitted: "Apr 3, 2026",
-    status: "in_progress",
-    stage: "Under Review",
-    timeline: [
-      { step: "Application Received",     date: "Apr 3, 2026",  done: true },
-      { step: "Document Verification",    date: "Apr 10, 2026", done: true },
-      { step: "LMIA Submission",          date: "Apr 20, 2026", done: true },
-      { step: "IRCC Review",              date: "Ongoing",      done: false, active: true },
-      { step: "Permit Issued",            date: "Est. Jun 2026",done: false },
-    ],
-    note: "Your application is currently with IRCC. Processing times are typically 6-8 weeks. No action required from your side at this time.",
-  },
-  {
-    id: "EDEN-391047",
-    service: "Offer Letter",
-    submitted: "Mar 15, 2026",
-    status: "completed",
-    stage: "Issued",
-    timeline: [
-      { step: "Request Submitted",    date: "Mar 15, 2026", done: true },
-      { step: "Employer Contacted",   date: "Mar 17, 2026", done: true },
-      { step: "Letter Drafted",       date: "Mar 22, 2026", done: true },
-      { step: "Offer Letter Issued",  date: "Mar 25, 2026", done: true },
-    ],
-    note: "Your offer letter has been issued and delivered to your registered email. Please save this document safely.",
-  },
 ];
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -55,28 +22,38 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 };
 
 export default function ClientStatusPage() {
-  const [apps, setApps] = useState(MOCK_APPLICATIONS);
+  const [apps, setApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]);
+  const supabase = createClient();
 
   useEffect(() => {
-    const isDemo = typeof document !== 'undefined' && document.cookie.includes('demo-session=true');
-    if (isDemo) {
-      const load = async () => {
-        const { mockDb } = await import("@/lib/mock-db");
-        const demoApps = mockDb.getApplications();
-        setApps(demoApps);
-        if (demoApps.length > 0) setExpanded(demoApps[0].id);
-      };
-      load();
-
-      // Listen for updates from other tabs (Admin panel)
-      const handleStorage = () => load();
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
-    }
+    fetchApps();
   }, []);
+
+  const fetchApps = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("applications")
+      .select(`
+        *,
+        jobs (title, country),
+        application_timeline (*)
+      `)
+      .eq("client_id", user.id)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setApps(data);
+      if (data.length > 0) setExpanded(data[0].id);
+    }
+    setLoading(false);
+  };
 
   const filtered = apps.filter(app =>
     app.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,7 +110,7 @@ export default function ClientStatusPage() {
           </div>
         ) : (
           filtered.map(app => {
-            const badge = STATUS_BADGE[app.status];
+            const badge = STATUS_BADGE[app.status] || STATUS_BADGE.in_progress;
             const isOpen = expanded === app.id;
 
             return (
@@ -150,8 +127,7 @@ export default function ClientStatusPage() {
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       app.status === "completed" ? "bg-emerald-100" :
-                      app.status === "in_progress" ? "bg-amber-100" :
-                      "bg-slate-100"
+                      "bg-amber-100"
                     }`}>
                       {app.status === "completed"
                         ? <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -160,16 +136,16 @@ export default function ClientStatusPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-3 mb-1">
-                        <p className="font-black text-slate-900 text-sm">{app.id}</p>
+                        <p className="font-black text-slate-900 text-xs tracking-tighter truncate max-w-[120px] sm:max-w-none">ID: {app.id.split('-')[1] || app.id}</p>
                         <span className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${badge.className}`}>
                           {badge.label}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400">{app.service} · Submitted {app.submitted}</p>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{app.jobs?.title || "Immigration Case"} · {app.jobs?.country || "Global"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-400 hidden sm:block">{app.stage}</span>
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest hidden sm:block">{app.current_stage?.replace(/_/g, ' ')}</span>
                     {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </div>
                 </button>
@@ -185,37 +161,39 @@ export default function ClientStatusPage() {
                     >
                       <div className="px-6 pb-6 border-t border-slate-100">
                         <div className="pt-6 space-y-5">
-                          {app.timeline.map((t, i) => (
+                          {app.application_timeline?.map((t: any, i: number) => (
                             <div key={i} className="flex items-start gap-4">
                               <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                                t.done ? "bg-emerald-500" :
-                                (t as any).active ? "bg-[#D11218] animate-pulse" :
+                                t.status === 'completed' ? "bg-emerald-500" :
+                                t.status === 'active' ? "bg-blue-600 animate-pulse" :
                                 "bg-slate-200"
                               }`}>
-                                {t.done
+                                {t.status === 'completed'
                                   ? <CheckCircle2 className="w-4 h-4 text-white" />
                                   : <Clock className="w-4 h-4 text-white" />
                                 }
                               </div>
                               <div className="flex-1 flex items-start justify-between">
                                 <div>
-                                  <p className={`font-bold text-sm ${t.done || (t as any).active ? "text-slate-900" : "text-slate-400"}`}>
-                                    {t.step}
+                                  <p className={`font-bold text-sm uppercase tracking-tight ${t.status === 'completed' || t.status === 'active' ? "text-slate-900" : "text-slate-400"}`}>
+                                    {t.stage.replace(/_/g, ' ')}
                                   </p>
-                                  <p className="text-xs text-slate-400 mt-0.5">{t.date}</p>
+                                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">{new Date(t.date_reached).toLocaleDateString()}</p>
                                 </div>
-                                {(t as any).active && (
-                                  <span className="text-[10px] font-black text-[#D11218] uppercase tracking-widest">Active</span>
+                                {t.status === 'active' && (
+                                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Ongoing</span>
                                 )}
                               </div>
                             </div>
                           ))}
                         </div>
 
-                        <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-[#D11218] shrink-0 mt-0.5" />
-                          <p className="text-sm text-slate-600 font-medium">{app.note}</p>
-                        </div>
+                        {app.notes && (
+                          <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                            <p className="text-sm text-slate-600 font-medium">{app.notes}</p>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
