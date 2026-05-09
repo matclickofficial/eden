@@ -50,20 +50,13 @@ export default function AdminClientsPage() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          applications (
-            id,
-            current_stage,
-            jobs (title)
-          )
-        `)
+        .select("*")
         .eq("role", "client")
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Fetch Clients Error:", error);
-        toast.error("Failed to connect to client database");
+        console.error("Detailed Fetch Error:", error);
+        toast.error(`DB Error: ${error.message}`);
         return;
       }
       
