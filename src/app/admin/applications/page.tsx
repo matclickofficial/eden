@@ -76,17 +76,19 @@ export default function AdminApplicationsPage() {
         .from("applications")
         .select(`
           *,
-          profiles:user_id (full_name, email, phone),
+          profiles:client_id (full_name, email, phone),
           jobs (title, country)
         `)
         .order("created_at", { ascending: false });
 
       if (error && !isDemo) {
-        toast.error("Failed to fetch applications");
+        console.error("Detailed App Error:", error);
+        toast.error(`DB Error: ${error.message}`);
       } else {
         setApplications([...demoList, ...(data || [])]);
       }
     } catch (e) {
+      console.error("System Error:", e);
       if (isDemo) setApplications(demoList);
     } finally {
       setLoading(false);
