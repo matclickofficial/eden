@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ShieldCheck, Bot } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const QUICK_LINKS = [
   { label: "Submit Application", href: "/client/apply", icon: FileText, desc: "Start or continue your application" },
