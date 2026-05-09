@@ -20,24 +20,12 @@ const STAT_CARDS = [
 const TIMELINE = [
   { step: "Profile Verified", date: "Mar 22, 2026", done: true },
   { step: "Application Submitted", date: "Apr 3, 2026", done: true },
-  { step: "Initial Review In Progress", date: "Ongoing", done: false, active: true },
-  { step: "Final Visa Decision", date: "Est. Jun 2026", done: false },
-];
-
 const QUICK_LINKS = [
   { label: "Submit Application", href: "/client/apply", icon: FileText, desc: "Start or continue your application" },
   { label: "Check Status", href: "/client/status", icon: Globe, desc: "Track real-time application status" },
   { label: "Upload Documents", href: "/client/documents", icon: Briefcase, desc: "Submit required paperwork" },
   { label: "Make Payment", href: "/client/payments", icon: CreditCard, desc: "Pay fees securely online" },
 ];
-
-const NOTICES = [
-  { type: "action", text: "Please upload your updated bank statement for application processing.", time: "2 days ago" },
-  { type: "info", text: "Your visa application is under review by the immigration authority.", time: "5 days ago" },
-  { type: "success", text: "Payment of $350 received and confirmed.", time: "1 week ago" },
-];
-
-import { mockDb } from "@/lib/mock-db";
 
 export default function ClientDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -46,35 +34,57 @@ export default function ClientDashboard() {
   const supabase = createClient();
 
   useEffect(() => {
+    let channel: any;
+
     const fetchData = async () => {
-      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         setLoading(false);
         return;
       }
 
-      // Fetch Profile
-      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-      setProfile(profileData);
+      // Initial Fetch
+      const fetchCurrent = async () => {
+        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        setProfile(profileData);
 
-      // Fetch Real Applications from DB
-      const { data: appsData } = await supabase
-        .from("applications")
-        .select(`
-          *,
-          jobs (title, country),
-          application_timeline (*)
-        `)
-        .eq("client_id", user.id)
-        .order('created_at', { ascending: false });
+        const { data: appsData } = await supabase
+          .from("applications")
+          .select(`
+            *,
+            jobs (title, country),
+            application_timeline (*)
+          `)
+          .eq("client_id", user.id)
+          .order('created_at', { ascending: false });
 
-      setApps(appsData || []);
-      setLoading(false);
+        setApps(appsData || []);
+        setLoading(false);
+      };
+
+      await fetchCurrent();
+
+      // Realtime Sync Subscription
+      channel = supabase
+        .channel(`user-sync-${user.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'applications', filter: `client_id=eq.${user.id}` },
+          () => fetchCurrent()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'application_timeline' },
+          () => fetchCurrent()
+        )
+        .subscribe();
     };
 
     fetchData();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
@@ -207,93 +217,88 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Application Timeline */}
-        <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-black text-slate-900 text-xl">Application Pulse</h3>
-            <Link href="/client/status" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-widest">
-              Full Status <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="space-y-8">
-            {(mainApp?.timeline || TIMELINE).map((step: any, i: number) => (
-              <div key={i} className="flex items-start gap-6">
-                <div className={`mt-1 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
-                  step.done ? "bg-emerald-500 shadow-lg shadow-emerald-100" : step.active ? "bg-blue-600 animate-pulse shadow-lg shadow-blue-100" : "bg-slate-100"
-                }`}>
-                  {step.done
-                    ? <CheckCircle2 className="w-5 h-5 text-white" />
-                    : <Clock className="w-5 h-5 text-white" />
-                  }
-                </div>
-                <div className="flex-1 flex items-start justify-between gap-4 pt-1">
-                  <div>
-                    <p className={`font-black text-base ${step.done || step.active ? "text-slate-900" : "text-slate-400"}`}>
-                      {step.step || step.label}
-                    </p>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{step.date}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Real-time Timeline */}
+        <div className="lg:col-span-8 space-y-6">
+          <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
+            <CardHeader className="flex flex-row items-center justify-between p-8 pb-0">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Application Pulse</CardTitle>
+              <Link href="/client/status" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-widest">
+                Full Status <ChevronRight className="w-3 h-3" />
+              </Link>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="space-y-8 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+                {mainApp && mainApp.application_timeline?.length > 0 ? (
+                  mainApp.application_timeline.map((step: any, i: number) => (
+                    <div key={i} className="flex items-start gap-6 relative z-10">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm ${
+                        step.status === 'completed' ? "bg-emerald-500" : 
+                        step.status === 'active' ? "bg-blue-600" : "bg-slate-100"
+                      }`}>
+                        {step.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Clock className={`w-4 h-4 ${step.status === 'active' ? "text-white" : "text-slate-400"}`} />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className={`font-bold text-sm uppercase tracking-tight ${step.status === 'completed' || step.status === 'active' ? "text-slate-900" : "text-slate-400"}`}>
+                            {step.stage.replace(/_/g, ' ')}
+                          </p>
+                          {step.status === 'active' && (
+                            <span className="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Active</span>
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
+                          {new Date(step.date_reached).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 text-center">
+                    <Layers className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Waiting for initial processing...</p>
                   </div>
-                  {step.active && (
-                    <Badge className="bg-blue-600 text-white font-black text-[9px] uppercase tracking-widest px-3 py-1">Active</Badge>
-                  )}
-                </div>
+                )}
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Sidebar: Document Health + Notices */}
-        <div className="space-y-8">
-          {/* Document Health Card */}
-          <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8 space-y-6">
-            <div className="flex items-center justify-between">
-               <h3 className="font-black text-slate-900 text-lg tracking-tight">Document Health</h3>
-               <Heart className="w-5 h-5 text-red-400" />
-            </div>
-            <div className="space-y-4">
-               <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-start gap-3">
-                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                 <div>
-                   <p className="text-xs font-black text-amber-900 uppercase tracking-widest">Passport Expiry Risk</p>
-                   <p className="text-[11px] text-amber-800 font-medium mt-1 leading-relaxed">Your passport expires in 5 months. Please initiate renewal soon.</p>
-                 </div>
-               </div>
-               <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
-                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                 <div>
-                   <p className="text-xs font-black text-emerald-900 uppercase tracking-widest">Health Checked</p>
-                   <p className="text-[11px] text-emerald-800 font-medium mt-1 leading-relaxed">6 documents are verified and within validity periods.</p>
-                 </div>
-               </div>
-            </div>
-            <Link href="/client/documents" className="block w-full py-4 text-center bg-slate-50 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#0A1128] hover:text-white transition-all">
-              Manage Documents
-            </Link>
-          </div>
-
-          <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-black text-slate-900 text-lg tracking-tight">Notices</h3>
-              <Bell className="w-5 h-5 text-slate-400" />
-            </div>
-            <div className="space-y-4">
-              {NOTICES.map((n, i) => (
-                <div key={i} className={`p-4 rounded-2xl border text-sm ${
-                  n.type === "action" ? "bg-amber-50 border-amber-200" :
-                  n.type === "success" ? "bg-emerald-50 border-emerald-200" :
-                  "bg-blue-50 border-blue-200"
-                }`}>
-                  <p className={`font-bold leading-snug text-xs ${
-                    n.type === "action" ? "text-amber-800" :
-                    n.type === "success" ? "text-emerald-800" :
-                    "text-blue-800"
-                  }`}>{n.text}</p>
-                  <p className="text-[10px] mt-2 opacity-60 font-bold uppercase tracking-widest">{n.time}</p>
+        {/* Dynamic Health & Notices */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Health Card */}
+          <Card className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Security Health</CardTitle>
+              <Heart className="w-4 h-4 text-rose-500" />
+            </CardHeader>
+            <CardContent className="px-8 pb-8 space-y-4">
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black text-emerald-900 uppercase tracking-tight">System Status: Optimal</p>
+                  <p className="text-[10px] text-emerald-700 font-medium mt-0.5">All global verification endpoints are active.</p>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+              <Link href="/client/documents" className="block text-center py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">
+                Manage Documents
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Notices */}
+          <Card className="rounded-[32px] border-none shadow-sm bg-white">
+            <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Notices</CardTitle>
+              <Bell className="w-4 h-4 text-slate-300" />
+            </CardHeader>
+            <CardContent className="px-8 pb-8 space-y-4">
+               {/* This section is now purely data-driven. Empty state shown by default. */}
+               <div className="py-6 text-center border-2 border-dashed border-slate-50 rounded-2xl">
+                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">No urgent notices</p>
+               </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

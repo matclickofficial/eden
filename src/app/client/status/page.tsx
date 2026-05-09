@@ -30,7 +30,36 @@ export default function ClientStatusPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    fetchApps();
+    let channel: any;
+
+    const setup = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Initial Fetch
+      await fetchApps();
+
+      // Realtime Listener
+      channel = supabase
+        .channel('status-sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'applications', filter: `client_id=eq.${user.id}` },
+          () => fetchApps()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'application_timeline' },
+          () => fetchApps()
+        )
+        .subscribe();
+    };
+
+    setup();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchApps = async () => {
