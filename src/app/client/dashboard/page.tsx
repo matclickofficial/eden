@@ -10,16 +10,6 @@ import {
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 
-const STAT_CARDS = [
-  { label: "Active Applications", value: "2", icon: FileText, color: "bg-blue-50 text-blue-600", trend: "+1 this month" },
-  { label: "Payments Made", value: "3", icon: CreditCard, color: "bg-emerald-50 text-emerald-600", trend: "Last: May 1" },
-  { label: "Pending Actions", value: "1", icon: AlertCircle, color: "bg-amber-50 text-amber-600", trend: "Requires upload" },
-  { label: "Days Active", value: "47", icon: Clock, color: "bg-purple-50 text-purple-600", trend: "Since Mar 22" },
-];
-
-const TIMELINE = [
-  { step: "Profile Verified", date: "Mar 22, 2026", done: true },
-  { step: "Application Submitted", date: "Apr 3, 2026", done: true },
 const QUICK_LINKS = [
   { label: "Submit Application", href: "/client/apply", icon: FileText, desc: "Start or continue your application" },
   { label: "Check Status", href: "/client/status", icon: Globe, desc: "Track real-time application status" },
