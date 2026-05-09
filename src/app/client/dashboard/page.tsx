@@ -161,102 +161,90 @@ export default function ClientDashboard() {
         </div>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4"><FileText className="w-5 h-5" /></div>
-          <p className="text-3xl font-black text-slate-900 mb-1">{apps.length}</p>
-          <p className="text-sm font-semibold text-slate-500">Active Cases</p>
-        </motion.div>
-        {/* Add more stats mapping from real data here */}
+
+
+    <div className="space-y-10 max-w-[1400px] mx-auto">
+      {/* 1. Symmetrical Top Bar: Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          { label: "Apply Now",     href: "/client/apply",      icon: FileText,   color: "bg-blue-600",    text: "text-white" },
+          { label: "My Status",     href: "/client/status",     icon: Globe,      color: "bg-slate-900",   text: "text-white" },
+          { label: "Documents",     href: "/client/documents",  icon: Layers,     color: "bg-white",       text: "text-slate-900" },
+          { label: "Payments",      href: "/client/payments",   icon: CreditCard, color: "bg-white",       text: "text-slate-900" },
+        ].map((item, i) => (
+          <Link key={i} href={item.href}>
+            <motion.div
+              whileHover={{ y: -5 }}
+              className={cn(
+                "p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col items-center gap-4 transition-all hover:shadow-xl",
+                item.color, item.text
+              )}
+            >
+              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner", 
+                item.color === "bg-white" ? "bg-slate-50" : "bg-white/10")}>
+                <item.icon className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-[0.2em]">{item.label}</span>
+            </motion.div>
+          </Link>
+        ))}
       </div>
 
-      {/* Action Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Virtual Interview Prep Card */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-            <div className="w-20 h-20 rounded-[24px] bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20">
-              <Video className="w-10 h-10 text-white" />
-            </div>
-            <div className="space-y-4 flex-1">
-              <h3 className="text-2xl font-black tracking-tight leading-tight">Virtual Interview Room</h3>
-              <p className="text-white/70 text-sm leading-relaxed">
-                Practice your visa interview with our AI officer and get real-time feedback on your performance.
-              </p>
-              <Link 
-                href="/client/interview" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all shadow-lg"
-              >
-                Start Simulation <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Family Management Card */}
-        <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-500/20 transition-all">
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-            <div className="w-20 h-20 rounded-[24px] bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-              <Users className="w-10 h-10 text-blue-600" />
-            </div>
-            <div className="space-y-4 flex-1">
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">Family Umbrella</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Track status and manage documents for your spouse and children from a single secure dashboard.
-              </p>
-              <Link 
-                href="/client/family" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#0A1128] text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#1a2744] transition-all shadow-lg"
-              >
-                Manage Dependents <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Real-time Timeline */}
-        <div className="lg:col-span-8 space-y-6">
-          <Card className="rounded-[32px] border-none shadow-sm overflow-hidden bg-white">
-            <CardHeader className="flex flex-row items-center justify-between p-8 pb-0">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Application Pulse</CardTitle>
-              <Link href="/client/status" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-widest">
-                Full Status <ChevronRight className="w-3 h-3" />
+      {/* 2. Main Symmetrical Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Section: Application Pulse (Symmetrical 8-cols) */}
+        <div className="lg:col-span-8">
+          <Card className="rounded-[40px] border-none shadow-sm bg-white overflow-hidden min-h-[500px] flex flex-col">
+            <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-black uppercase tracking-[0.25em] text-slate-400">Application Pulse</CardTitle>
+                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-1">Live Case Tracking</p>
+              </div>
+              <Link href="/client/status" className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                <ChevronRight className="w-4 h-4" />
               </Link>
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="space-y-8 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+            <CardContent className="p-10 flex-1 flex flex-col justify-center">
+              <div className="space-y-10 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-50">
                 {mainApp && mainApp.application_timeline?.length > 0 ? (
                   mainApp.application_timeline.map((step: any, i: number) => (
-                    <div key={i} className="flex items-start gap-6 relative z-10">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm ${
+                    <motion.div 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      key={i} 
+                      className="flex items-start gap-8 relative z-10"
+                    >
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border-4 border-white shadow-md ${
                         step.status === 'completed' ? "bg-emerald-500" : 
-                        step.status === 'active' ? "bg-blue-600" : "bg-slate-100"
+                        step.status === 'active' ? "bg-blue-600 shadow-lg shadow-blue-200" : "bg-slate-100"
                       }`}>
                         {step.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Clock className={`w-4 h-4 ${step.status === 'active' ? "text-white" : "text-slate-400"}`} />}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 border-b border-slate-50 pb-6">
                         <div className="flex items-center justify-between">
-                          <p className={`font-bold text-sm uppercase tracking-tight ${step.status === 'completed' || step.status === 'active' ? "text-slate-900" : "text-slate-400"}`}>
+                          <p className={`font-black text-sm uppercase tracking-tight ${step.status === 'completed' || step.status === 'active' ? "text-slate-900" : "text-slate-400"}`}>
                             {step.stage.replace(/_/g, ' ')}
                           </p>
-                          {step.status === 'active' && (
-                            <span className="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Active</span>
-                          )}
+                          <span className="text-[10px] font-black text-slate-400">{new Date(step.date_reached).toLocaleDateString()}</span>
                         </div>
-                        <p className="text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                          {new Date(step.date_reached).toLocaleDateString()}
-                        </p>
+                        {step.status === 'active' && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Ongoing Processing</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    </motion.div>
                   ))
                 ) : (
-                  <div className="py-10 text-center">
-                    <Layers className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Waiting for initial processing...</p>
+                  <div className="text-center py-20">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 opacity-40">
+                      <Layers className="w-10 h-10 text-slate-300" />
+                    </div>
+                    <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs">No Active Records</h4>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Start an application to see your pulse</p>
                   </div>
                 )}
               </div>
@@ -264,63 +252,61 @@ export default function ClientDashboard() {
           </Card>
         </div>
 
-        {/* Dynamic Health & Notices */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Health Card */}
-          <Card className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Security Health</CardTitle>
+        {/* Right Section: Symmetrical Sidebar (4-cols) */}
+        <div className="lg:col-span-4 space-y-8">
+          {/* Security Health */}
+          <Card className="rounded-[40px] border-none shadow-sm bg-white overflow-hidden">
+            <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-black uppercase tracking-[0.25em] text-slate-400">Security Health</CardTitle>
               <Heart className="w-4 h-4 text-rose-500" />
             </CardHeader>
-            <CardContent className="px-8 pb-8 space-y-4">
-              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-black text-emerald-900 uppercase tracking-tight">System Status: Optimal</p>
-                  <p className="text-[10px] text-emerald-700 font-medium mt-0.5">All global verification endpoints are active.</p>
+            <CardContent className="px-8 pb-10 space-y-6">
+              <div className="p-6 bg-slate-950 rounded-3xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                   <ShieldCheck className="w-12 h-12" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Global Core v4.2</p>
+                <p className="text-sm font-black uppercase tracking-tight mt-1">Status: Operational</p>
+                <div className="mt-4 h-1 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} className="h-full bg-blue-500" />
                 </div>
               </div>
-              <Link href="/client/documents" className="block text-center py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">
-                Manage Documents
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Encryption</span>
+                  <span className="text-[10px] font-black text-emerald-500 uppercase">AES-256</span>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CDN Link</span>
+                  <span className="text-[10px] font-black text-blue-600 uppercase">Verified</span>
+                </div>
+              </div>
+
+              <Link href="/client/documents" className="block text-center py-4 rounded-2xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                Audit Documents
               </Link>
             </CardContent>
           </Card>
 
-          {/* Notices */}
-          <Card className="rounded-[32px] border-none shadow-sm bg-white">
-            <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Notices</CardTitle>
+          {/* Symmetrical Notices */}
+          <Card className="rounded-[40px] border-none shadow-sm bg-white overflow-hidden">
+            <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-black uppercase tracking-[0.25em] text-slate-400">Notices</CardTitle>
               <Bell className="w-4 h-4 text-slate-300" />
             </CardHeader>
-            <CardContent className="px-8 pb-8 space-y-4">
-               {/* This section is now purely data-driven. Empty state shown by default. */}
-               <div className="py-6 text-center border-2 border-dashed border-slate-50 rounded-2xl">
-                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">No urgent notices</p>
+            <CardContent className="px-8 pb-10 flex flex-col justify-center items-center min-h-[160px] text-center">
+               <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+                 <Bot className="w-6 h-6 text-slate-200" />
                </div>
+               <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em]">Inbox is Clean</p>
+               <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase">We'll notify you of any updates</p>
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>
 
-      {/* Quick Links */}
-      <div>
-        <h3 className="font-black text-slate-900 text-lg mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {QUICK_LINKS.map((link, i) => (
-            <Link key={i} href={link.href}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 hover:shadow-md hover:border-[#D11218]/30 transition-all group cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-[#D11218]/10 flex items-center justify-center mb-4 group-hover:bg-[#D11218] transition-colors">
-                  <link.icon className="w-5 h-5 text-[#D11218] group-hover:text-white transition-colors" />
-                </div>
-                <p className="font-bold text-slate-900 text-sm mb-1">{link.label}</p>
-                <p className="text-xs text-slate-400">{link.desc}</p>
-              </motion.div>
-            </Link>
-          ))}
-        </div>
       </div>
     </div>
   );
