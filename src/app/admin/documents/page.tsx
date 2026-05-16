@@ -56,7 +56,7 @@ export default function AdminDocumentsPage() {
       .from("documents")
       .select(`
         *,
-        client:profiles!documents_client_id_fkey(full_name, phone)
+        client:client_id (full_name, phone)
       `)
       .order("uploaded_at", { ascending: false });
 

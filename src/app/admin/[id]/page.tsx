@@ -23,7 +23,9 @@ import {
   FileText,
   DollarSign,
   Globe,
-  Phone
+  Phone,
+  Download,
+  Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -52,12 +54,24 @@ export default function AdminApplicationDetailPage() {
   const { id } = useParams();
   const [application, setApplication] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
+  const [checkpoints, setCheckpoints] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [updatingCP, setUpdatingCP] = useState<string | null>(null);
   const [newStage, setNewStage] = useState("");
   const [adminNote, setAdminNote] = useState("");
   const supabase = createClient();
+
+  const CHECKPOINT_TITLES = [
+    "Offer Letter",
+    "LMIA Approval",
+    "Work Permit",
+    "Visa Status",
+    "Ticket Status",
+    "Fees Status",
+    "HICC Status"
+  ];
 
   useEffect(() => {
     fetchData();
@@ -67,6 +81,7 @@ export default function AdminApplicationDetailPage() {
     const isDemo = typeof document !== 'undefined' && document.cookie.includes('demo-session=true');
 
     if (isDemo) {
+      // Demo logic omitted for brevity, keeping original
       const { mockDb } = await import("@/lib/mock-db");
       const apps = mockDb.getApplications();
       const current = apps.find((a: any) => a.id === id || (id as string).includes(a.id.split('-')[1]));
@@ -104,6 +119,11 @@ export default function AdminApplicationDetailPage() {
         .eq("application_id", id)
         .order("date_reached", { ascending: false });
 
+      const { data: checkpointsData } = await supabase
+        .from("application_checkpoints")
+        .select("*")
+        .eq("application_id", id);
+
       const { data: staffData } = await supabase
         .from("profiles")
         .select("*")
@@ -111,6 +131,7 @@ export default function AdminApplicationDetailPage() {
 
       setApplication(appData);
       setTimeline(timelineData || []);
+      setCheckpoints(checkpointsData || []);
       setStaff(staffData || []);
       setNewStage(appData?.current_stage || "");
     } catch (e) {
@@ -119,6 +140,38 @@ export default function AdminApplicationDetailPage() {
       setLoading(false);
     }
   }
+
+  const handleUpdateCheckpoint = async (title: string, status: string, documentUrl?: string) => {
+    setUpdatingCP(title);
+    try {
+      const existing = checkpoints.find(c => c.title === title);
+      
+      if (existing) {
+        const { error } = await supabase
+          .from("application_checkpoints")
+          .update({ status, document_url: documentUrl, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("application_checkpoints")
+          .insert({
+            application_id: id,
+            title,
+            status,
+            document_url: documentUrl
+          });
+        if (error) throw error;
+      }
+      
+      toast.success(`${title} updated successfully!`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Update failed");
+    } finally {
+      setUpdatingCP(null);
+    }
+  };
 
   const handleUpdateStage = async () => {
     if (!newStage) return;
@@ -303,6 +356,80 @@ export default function AdminApplicationDetailPage() {
               >
                 {updating ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> SYNCHRONIZING...</> : <><Save className="mr-3 w-5 h-5" /> BROADCAST UPDATE</>}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Checkpoint Management Card */}
+          <Card className="border-none bg-white shadow-xl rounded-[40px] overflow-hidden">
+            <CardHeader className="pt-8 px-8 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-black font-heading">Checkpoint Management</CardTitle>
+                <CardDescription className="text-slate-400 font-medium">Update status and upload documents for key milestones.</CardDescription>
+              </div>
+              <ShieldCheck className="w-6 h-6 text-slate-200" />
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {CHECKPOINT_TITLES.map((title) => {
+                  const cp = checkpoints.find(c => c.title === title);
+                  const isUpdating = updatingCP === title;
+                  
+                  return (
+                    <div key={title} className="p-6 rounded-3xl border border-slate-100 bg-slate-50/50 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+                        <Badge className={cn(
+                          "rounded-full text-[9px] font-black tracking-widest px-2 py-0.5",
+                          cp?.status === 'Ready' || cp?.status === 'Completed' ? "bg-emerald-500" : "bg-amber-500"
+                        )}>
+                          {isUpdating ? "UPDATING..." : (cp?.status || 'Pending')}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Select 
+                          disabled={isUpdating}
+                          value={cp?.status || "Pending"} 
+                          onValueChange={(val) => handleUpdateCheckpoint(title, val, cp?.document_url)}
+                        >
+                          <SelectTrigger className="rounded-xl h-10 border-slate-100 bg-white text-[10px] font-black uppercase tracking-widest">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-none bg-slate-900 text-white">
+                            {['Pending', 'Processing', 'Ready', 'Completed'].map(s => (
+                              <SelectItem key={s} value={s} className="text-[10px] font-bold">{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <div className="flex-1 flex gap-2">
+                          <input 
+                            disabled={isUpdating}
+                            type="text"
+                            placeholder="Document URL"
+                            className="flex-1 rounded-xl h-10 px-3 border border-slate-100 bg-white text-[10px] font-medium outline-none focus:ring-2 focus:ring-blue-500/20"
+                            defaultValue={cp?.document_url || ""}
+                            onBlur={(e) => {
+                              if (e.target.value !== (cp?.document_url || "")) {
+                                handleUpdateCheckpoint(title, cp?.status || 'Pending', e.target.value);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {cp?.document_url && (
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                          <span className="text-[9px] font-bold text-slate-400">Document Attached</span>
+                          <a href={cp.document_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 text-[9px] font-black uppercase">
+                            <Download className="w-2.5 h-2.5" /> View
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
 

@@ -18,12 +18,18 @@ import {
   ArrowUpRight,
   TrendingUp,
   Activity,
-  History
+  History,
+  Plus,
+  Trash2,
+  Edit,
+  Loader2,
+  Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -40,22 +46,45 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<any[]>([]);
+  const [methods, setMethods] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedPay, setSelectedPay] = useState<any>(null);
   const [updating, setUpdating] = useState(false);
+  const [isMethodDialogOpen, setIsMethodDialogOpen] = useState(false);
+  const [editingMethod, setEditingMethod] = useState<any>(null);
+  const [methodForm, setMethodForm] = useState({
+    provider_name: "",
+    account_number: "",
+    instructions: "",
+    image_url: ""
+  });
   const supabase = createClient();
 
   useEffect(() => {
-    fetchPayments();
+    fetchData();
   }, []);
+
+  async function fetchData() {
+    setLoading(true);
+    await Promise.all([fetchPayments(), fetchMethods()]);
+    setLoading(false);
+  }
+
+  async function fetchMethods() {
+    const { data } = await supabase
+      .from("payment_methods")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setMethods(data || []);
+  }
 
   async function fetchPayments() {
     const { data, error } = await supabase
       .from("payments")
       .select(`
         *,
-        client:profiles!payments_client_id_fkey(full_name, phone)
+        client:client_id (full_name, phone)
       `)
       .order("paid_at", { ascending: false });
 
@@ -66,6 +95,74 @@ export default function AdminPaymentsPage() {
     }
     setLoading(false);
   }
+
+  const handleSaveMethod = async () => {
+    setUpdating(true);
+    try {
+      if (editingMethod) {
+        const { error } = await supabase
+          .from("payment_methods")
+          .update(methodForm)
+          .eq("id", editingMethod.id);
+        if (error) throw error;
+        toast.success("Payment method updated");
+      } else {
+        const { error } = await supabase
+          .from("payment_methods")
+          .insert(methodForm);
+        if (error) throw error;
+        toast.success("Payment method added");
+      }
+      setIsMethodDialogOpen(false);
+      setEditingMethod(null);
+      setMethodForm({ provider_name: "", account_number: "", instructions: "", image_url: "" });
+      fetchMethods();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save method");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteMethod = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment method?")) return;
+    try {
+      const { error } = await supabase
+        .from("payment_methods")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Payment method deleted");
+      fetchMethods();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete method");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUpdating(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `payment_methods/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      setMethodForm(prev => ({ ...prev, image_url: filePath }));
+      toast.success("Image uploaded successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Upload failed");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const handleUpdateStatus = async (paymentId: string, status: string) => {
     setUpdating(true);
@@ -107,21 +204,176 @@ export default function AdminPaymentsPage() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
           <h2 className="text-4xl font-black text-slate-950 font-heading tracking-tight mb-2">Payment Management</h2>
-          <p className="text-slate-500 font-medium text-lg">Monitor and verify client payments and transactions.</p>
+          <p className="text-slate-500 font-medium text-lg">Monitor and verify client payments and manage bank details.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4">
+          <Dialog open={isMethodDialogOpen} onOpenChange={(open) => {
+            setIsMethodDialogOpen(open);
+            if (!open) { setEditingMethod(null); setMethodForm({ provider_name: "", account_number: "", instructions: "", image_url: "" }); }
+          }}>
+            <DialogTrigger asChild>
+              <Button className="rounded-[20px] bg-blue-600 text-white font-black h-14 px-8 shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95">
+                <Plus className="w-4 h-4 mr-2" /> Manage Bank Details
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-[40px] max-w-4xl border-none bg-white p-8 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="mb-8">
+                <DialogTitle className="text-3xl font-black font-heading tracking-tight">Manage Payment Options</DialogTitle>
+                <DialogDescription className="text-slate-500 font-medium">Add multiple bank accounts or payment providers for clients to see.</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* Form Side */}
+                <div className="space-y-6">
+                  <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">
+                    <h3 className="text-xl font-black text-slate-900">{editingMethod ? "Edit Option" : "Add New Option"}</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Provider Name</label>
+                        <Input 
+                          placeholder="e.g. HBL Bank, JazzCash" 
+                          value={methodForm.provider_name}
+                          onChange={e => setMethodForm(p => ({...p, provider_name: e.target.value}))}
+                          className="h-12 rounded-xl border-slate-200 bg-white font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Account Number / IBAN</label>
+                        <Input 
+                          placeholder="e.g. 1234-5678-9012" 
+                          value={methodForm.account_number}
+                          onChange={e => setMethodForm(p => ({...p, account_number: e.target.value}))}
+                          className="h-12 rounded-xl border-slate-200 bg-white font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Additional Instructions</label>
+                        <Textarea 
+                          placeholder="Special instructions for the client..." 
+                          value={methodForm.instructions}
+                          onChange={e => setMethodForm(p => ({...p, instructions: e.target.value}))}
+                          className="rounded-xl border-slate-200 bg-white font-medium resize-none h-24"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">QR Code or Bank Logo</label>
+                        <div className="flex items-center gap-4">
+                          <Button 
+                            variant="outline" 
+                            className="w-full h-12 rounded-xl border-slate-200 gap-2 font-bold bg-white relative overflow-hidden"
+                          >
+                            <Upload className="w-4 h-4" /> 
+                            {methodForm.image_url ? "Change Image" : "Upload Image"}
+                            <input 
+                              type="file" 
+                              className="absolute inset-0 opacity-0 cursor-pointer" 
+                              onChange={handleFileUpload}
+                              accept="image/*"
+                            />
+                          </Button>
+                          {methodForm.image_url && (
+                            <div className="w-12 h-12 rounded-xl border border-slate-100 overflow-hidden shrink-0">
+                               <Image 
+                                 src={supabase.storage.from('documents').getPublicUrl(methodForm.image_url).data.publicUrl} 
+                                 alt="Preview" 
+                                 width={48} 
+                                 height={48} 
+                                 className="object-cover"
+                               />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleSaveMethod}
+                      disabled={updating || !methodForm.provider_name || !methodForm.account_number}
+                      className="w-full h-14 rounded-2xl bg-slate-950 text-white font-black uppercase text-[10px] tracking-widest shadow-xl shadow-slate-200"
+                    >
+                      {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingMethod ? "Save Changes" : "Create Option")}
+                    </Button>
+                    {editingMethod && (
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => { setEditingMethod(null); setMethodForm({ provider_name: "", account_number: "", instructions: "", image_url: "" }); }}
+                        className="w-full text-slate-400 font-bold text-[10px] uppercase tracking-widest"
+                      >
+                        Cancel Editing
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* List Side */}
+                <div className="space-y-6 overflow-y-auto pr-2">
+                  <h3 className="text-xl font-black text-slate-900">Current Options</h3>
+                  <div className="space-y-4">
+                    {methods.length === 0 ? (
+                      <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                        <p className="text-slate-400 font-bold text-xs">No payment options added yet.</p>
+                      </div>
+                    ) : methods.map(method => (
+                      <div key={method.id} className="p-6 bg-white border border-slate-100 rounded-3xl shadow-sm flex items-center justify-between group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs overflow-hidden">
+                             {method.image_url ? (
+                               <Image 
+                                 src={supabase.storage.from('documents').getPublicUrl(method.image_url).data.publicUrl} 
+                                 alt={method.provider_name} 
+                                 width={48} 
+                                 height={48} 
+                                 className="object-cover"
+                               />
+                             ) : method.provider_name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-black text-slate-900 leading-none mb-1">{method.provider_name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 tracking-tight">{method.account_number}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-9 w-9 rounded-xl bg-slate-50 text-slate-400 hover:text-blue-600"
+                            onClick={() => {
+                              setEditingMethod(method);
+                              setMethodForm({
+                                provider_name: method.provider_name,
+                                account_number: method.account_number,
+                                instructions: method.instructions || "",
+                                image_url: method.image_url || ""
+                              });
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-9 w-9 rounded-xl bg-slate-50 text-slate-400 hover:text-red-600"
+                            onClick={() => handleDeleteMethod(method.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
           <div className="flex items-center space-x-3 bg-white px-6 py-3 rounded-[24px] border border-slate-200 shadow-sm w-full sm:w-96 group focus-within:ring-4 focus-within:ring-blue-500/5 transition-all">
             <Search className="w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
             <Input 
-              placeholder="Search by client name, stage, or status..." 
+              placeholder="Search by client name..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 font-bold p-0 h-8 text-sm"
             />
           </div>
-          <Button className="rounded-[20px] bg-slate-950 text-white font-black h-14 px-8 shadow-2xl shadow-slate-200 hover:bg-slate-900 transition-all hover:scale-[1.02] active:scale-95">
-            <Filter className="w-4 h-4 mr-2" /> Filter
-          </Button>
         </div>
       </div>
 

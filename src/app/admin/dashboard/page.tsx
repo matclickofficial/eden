@@ -50,7 +50,7 @@ export default function AdminDashboardPage() {
 
       const { data: recentData } = await supabase
         .from("applications")
-        .select("*, client:profiles!applications_client_id_fkey(full_name), jobs(title)")
+        .select("*, client:client_id(full_name), jobs(title)")
         .order("created_at", { ascending: false })
         .limit(5);
 

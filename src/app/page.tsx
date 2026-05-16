@@ -198,6 +198,169 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* 8 Steps to Success */}
+      <section className="py-32 bg-white relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-red-500/5 rounded-full blur-[120px] -z-10" />
+        
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center space-y-4 mb-24">
+            <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 uppercase tracking-[0.2em] px-4 py-1">THE EDEN JOURNEY</Badge>
+            <h2 className="text-4xl md:text-6xl font-heading font-black text-secondary tracking-tighter">8 Steps to Your Visa Success</h2>
+            <p className="text-slate-500 font-medium max-w-2xl mx-auto italic">Your transparent, expert-guided path to a new life in Canada.</p>
+          </div>
+
+          <div className="space-y-32">
+            {[
+              {
+                step: "01",
+                title: "Initial Consultation",
+                desc: "We kick off with a free, tailored consultation to discuss your plans – whether it’s work, study, or residency in Canada.",
+                image: "/images/steps/step1.png"
+              },
+              {
+                step: "02",
+                title: "Eligibility Assessment",
+                desc: "Our team evaluates your profile against the immigration or visa requirements of Canada.",
+                image: "/images/steps/step2.png"
+              },
+              {
+                step: "03",
+                title: "Document Preparation",
+                desc: "We help you gather and organize the required documents, ensuring they align with the specific standards of your chosen destination.",
+                image: "/images/steps/step3.png"
+              },
+              {
+                step: "04",
+                title: "Application Submission",
+                desc: "Eden Food Canada expertly prepares and submits your visa application to the relevant authorities in Canada.",
+                image: "/images/steps/step4.png"
+              },
+              {
+                step: "05",
+                title: "Biometrics & Interviews",
+                desc: "We coordinate and prepare you for biometrics or interviews, as required by the immigration or visa offices of Canada.",
+                image: "/images/steps/step5.png"
+              },
+              {
+                step: "06",
+                title: "Tracking & Updates",
+                desc: "Stay informed! We monitor your application’s progress and provide updates based on the processing timelines of your selected country.",
+                image: "/images/steps/step6.png"
+              },
+              {
+                step: "07",
+                title: "Visa Approval",
+                desc: "Once approved, we ensure you receive your visa documents and guide you on the next steps for your move to Canada.",
+                image: "/images/steps/step7.png"
+              },
+              {
+                step: "08",
+                title: "Arrival Support",
+                desc: "Our assistance extends beyond approval – we offer practical tips for travel and settling into life in Canada.",
+                image: "/images/steps/step8.png"
+              }
+            ].map((step, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8 }}
+                className={cn(
+                  "flex flex-col lg:flex-row items-center gap-16 lg:gap-24",
+                  i % 2 !== 0 && "lg:flex-row-reverse"
+                )}
+              >
+                <div className="flex-1 space-y-8">
+                  <div className="flex items-center space-x-6">
+                    <span className="text-7xl font-black text-primary/10 font-heading leading-none">{step.step}</span>
+                    <div className="h-px flex-1 bg-slate-100" />
+                  </div>
+                  <h3 className="text-3xl md:text-4xl font-heading font-black text-secondary tracking-tight">{step.title}</h3>
+                  <p className="text-lg text-slate-500 font-medium leading-relaxed">{step.desc}</p>
+                  <Link href={user ? "/client/apply" : "/register"}>
+                    <Button variant="link" className="text-primary font-black p-0 h-auto text-base hover:text-red-700 group">
+                      Apply Now <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                </div>
+                <div className="flex-1 w-full relative aspect-video lg:aspect-auto h-[400px]">
+                  <div className="absolute inset-0 bg-primary/5 rounded-[48px] rotate-3 scale-105 -z-10" />
+                  <Image 
+                    src={step.image} 
+                    alt={step.title} 
+                    fill 
+                    className="object-cover rounded-[48px] shadow-2xl"
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Success Stories */}
+      <section className="py-32 bg-slate-950 text-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
+            <div className="space-y-4">
+              <Badge className="bg-primary text-white border-none rounded-full px-4 py-1 uppercase tracking-widest text-[10px] font-black">Success Stories</Badge>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-black tracking-tighter">Real Stories, Real Success</h2>
+            </div>
+            <p className="text-slate-400 font-medium max-w-sm text-lg italic">Join the thousands of individuals who have successfully relocated to Canada with Eden Food.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "A New Career in Toronto",
+                name: "Ahmad K.",
+                category: "Work Permit",
+                desc: "After months of searching, Eden Food Canada helped me secure a work permit for a top tech firm in Toronto. The support was unparalleled.",
+                image: "/images/stories/story1.png"
+              },
+              {
+                title: "Academic Excellence in Vancouver",
+                name: "Sarah L.",
+                category: "Study Visa",
+                desc: "My dream of studying in Canada became a reality. From university selection to visa approval, they were with me every step.",
+                image: "/images/stories/story2.png"
+              },
+              {
+                title: "Reunited with Family",
+                name: "The Miller Family",
+                category: "Permanent Residency",
+                desc: "We are finally together in our new home. The family sponsorship process was handled with such care and professionalism.",
+                image: "/images/stories/story3.png"
+              }
+            ].map((story, i) => (
+              <motion.div 
+                key={i}
+                whileHover={{ y: -10 }}
+                className="group relative h-[600px] rounded-[48px] overflow-hidden bg-slate-900 shadow-2xl"
+              >
+                <Image src={story.image} alt={story.title} fill className="object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                <div className="absolute inset-0 p-10 flex flex-col justify-end">
+                  <Badge className="w-fit bg-primary text-white mb-4">{story.category}</Badge>
+                  <h3 className="text-2xl font-black mb-3">{story.title}</h3>
+                  <p className="text-slate-300 text-sm font-medium leading-relaxed mb-6 line-clamp-3">"{story.desc}"</p>
+                  <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-white">{story.name}</p>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Verified Alumnus</p>
+                    </div>
+                    <div className="flex">
+                      {[...Array(5)].map((_, j) => <Star key={j} className="w-3 h-3 fill-primary text-primary" />)}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials */}
       <section className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">

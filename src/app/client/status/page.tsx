@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, AlertCircle, Search, Loader2, ChevronDown, ChevronUp, Globe, Briefcase } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Search, Loader2, ChevronDown, ChevronUp, Globe, Briefcase, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const CATEGORIES = [
@@ -72,7 +72,8 @@ export default function ClientStatusPage() {
       .select(`
         *,
         jobs (title, country),
-        application_timeline (*)
+        application_timeline (*),
+        application_checkpoints (*)
       `)
       .eq("client_id", user.id)
       .order('created_at', { ascending: false });
@@ -188,8 +189,56 @@ export default function ClientStatusPage() {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="px-6 pb-6 border-t border-slate-100">
-                        <div className="pt-6 space-y-5">
+                      <div className="px-6 pb-6 border-t border-slate-100 bg-slate-50/30">
+                        {/* 7 Specific Checkpoints */}
+                        <div className="py-8">
+                          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mb-6">Process Checkpoints</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[
+                              "Offer Letter",
+                              "LMIA Approval",
+                              "Work Permit",
+                              "Visa Status",
+                              "Ticket Status",
+                              "Fees Status",
+                              "HICC Status"
+                            ].map((title) => {
+                              const cp = app.application_checkpoints?.find((c: any) => c.title === title);
+                              const isReady = cp?.status === 'Ready' || cp?.status === 'Completed';
+                              
+                              return (
+                                <div key={title} className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all">
+                                  <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{title}</p>
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-2 h-2 rounded-full ${isReady ? "bg-emerald-500" : "bg-slate-200"}`} />
+                                      <span className="text-xs font-bold text-slate-900">{cp?.status || 'Pending'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="mt-4">
+                                    {cp?.document_url ? (
+                                      <a 
+                                        href={cp.document_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+                                      >
+                                        <Download className="w-3 h-3" /> Download
+                                      </a>
+                                    ) : (
+                                      <div className="w-full py-2 rounded-xl bg-slate-50 text-slate-300 text-[10px] font-black uppercase tracking-widest text-center">
+                                        Not Ready
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-6 space-y-5">
+                          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Activity History</p>
                           {app.application_timeline?.map((t: any, i: number) => (
                             <div key={i} className="flex items-start gap-4">
                               <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
@@ -218,7 +267,7 @@ export default function ClientStatusPage() {
                         </div>
 
                         {app.notes && (
-                          <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-3">
+                          <div className="mt-6 p-4 bg-white rounded-2xl border border-slate-200 flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                             <p className="text-sm text-slate-600 font-medium">{app.notes}</p>
                           </div>

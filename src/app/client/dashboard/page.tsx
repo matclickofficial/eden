@@ -10,6 +10,7 @@ import {
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const QUICK_LINKS = [
@@ -22,6 +23,7 @@ const QUICK_LINKS = [
 export default function ClientDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [apps, setApps] = useState<any[]>([]);
+  const [laborJobs, setLaborJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -51,6 +53,14 @@ export default function ClientDashboard() {
           .order('created_at', { ascending: false });
 
         setApps(appsData || []);
+
+        const { data: laborJobs } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("category", "Labor")
+          .eq("is_active", true)
+          .limit(4);
+        setLaborJobs(laborJobs || []);
         setLoading(false);
       };
 
@@ -186,7 +196,7 @@ export default function ClientDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Left Section: Application Pulse (Symmetrical 8-cols) */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 space-y-10">
           <Card className="rounded-[40px] border-none shadow-sm bg-white overflow-hidden min-h-[500px] flex flex-col">
             <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
               <div>
@@ -242,6 +252,56 @@ export default function ClientDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Labor Opportunities Section */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 font-heading tracking-tight uppercase">Labor Opportunities</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Available Jobs for Apply</p>
+              </div>
+              <Link href="/client/apply">
+                <button className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest hover:gap-3 transition-all">
+                  View All <ArrowRight className="w-3 h-3" />
+                </button>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {laborJobs.map((job, i) => (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-600/20 transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                      <Briefcase className="w-6 h-6" />
+                    </div>
+                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border-slate-100">
+                      {job.job_type}
+                    </Badge>
+                  </div>
+                  <h4 className="text-xl font-black text-slate-900 mb-2 leading-tight">{job.title}</h4>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-2 mb-6">
+                    <Globe className="w-3 h-3" /> {job.country}
+                  </p>
+                  <Link href="/client/apply">
+                    <Button className="w-full h-12 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 transition-all">
+                      Apply Now
+                    </Button>
+                  </Link>
+                </motion.div>
+              ))}
+              {laborJobs.length === 0 && (
+                <div className="col-span-full p-12 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+                  <p className="font-black text-slate-400 uppercase tracking-widest text-xs">No labor jobs listed yet</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right Section: Symmetrical Sidebar (4-cols) */}
