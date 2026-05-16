@@ -43,6 +43,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<any[]>([]);
@@ -211,11 +212,11 @@ export default function AdminPaymentsPage() {
             setIsMethodDialogOpen(open);
             if (!open) { setEditingMethod(null); setMethodForm({ provider_name: "", account_number: "", instructions: "", image_url: "" }); }
           }}>
-            <DialogTrigger asChild>
-              <Button className="rounded-[20px] bg-blue-600 text-white font-black h-14 px-8 shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95">
-                <Plus className="w-4 h-4 mr-2" /> Manage Bank Details
-              </Button>
-            </DialogTrigger>
+          <DialogTrigger render={
+            <Button className="rounded-[20px] bg-blue-600 text-white font-black h-14 px-8 shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95">
+              <Plus className="w-4 h-4 mr-2" /> Manage Bank Details
+            </Button>
+          } />
             <DialogContent className="rounded-[40px] max-w-4xl border-none bg-white p-8 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
               <DialogHeader className="mb-8">
                 <DialogTitle className="text-3xl font-black font-heading tracking-tight">Manage Payment Options</DialogTitle>
